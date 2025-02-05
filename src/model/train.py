@@ -12,7 +12,7 @@ from sklearn.linear_model import LogisticRegression
 # define functions
 def main(args):
     # TO DO: enable autologging
-
+    mlflow.autolog()
 
     # read data
     df = get_csvs_df(args.training_data)
@@ -34,12 +34,29 @@ def get_csvs_df(path):
 
 
 # TO DO: add function to split data
+def split_data(df):
+    x= df.iloc[:, :-1]
+    y= df.iloc[:, -1]
+    return train_test_split(X, y, test_size=0.2, random_state=42)
 
+def preprocess_data(X_train, X_test):
+    scaler = StandardScaler()
+    return scaler.fit_transform(X_train), scaler.transform(X_test)
+    
+def train_model(reg_rate, X_train, y_train):
+    model = LogisticRegression(C=1/reg_rate, solver="liblinear")
+    model.fit(X_train, y_train)
+    return model
 
-def train_model(reg_rate, X_train, X_test, y_train, y_test):
-    # train model
-    LogisticRegression(C=1/reg_rate, solver="liblinear").fit(X_train, y_train)
-
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    logging.info("Accuracy: %.2f%%", accuracy * 100)
+    logging.info("Classification Report:\n%s", classification_report(y_test, y_pred))
+    
+def save_model(model, output_file):
+    joblib.dump(model, output_file)
+    logging.info("Model saved to %s", output_file)
 
 def parse_args():
     # setup arg parser
@@ -57,18 +74,7 @@ def parse_args():
     # return args
     return args
 
-# run script
+
 if __name__ == "__main__":
-    # add space in logs
-    print("\n\n")
-    print("*" * 60)
-
-    # parse args
     args = parse_args()
-
-    # run main function
-    main(args)
-
-    # add space in logs
-    print("*" * 60)
-    print("\n\n")
+    main(args.training_data, args.reg_rate, args.model_output)
